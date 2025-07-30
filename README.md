@@ -46,11 +46,6 @@ A comprehensive Node.js + Express backend with MongoDB for the Paradise Yatra tr
 3. **Environment Configuration**
    Create a `.env` file in the root directory:
    ```env
-   PORT=5000
-   MONGODB_URI=mongodb+srv://dikshusharma11:Fluzion11@@cluster0.w6ybkdx.mongodb.net/paradise-yatra
-   JWT_SECRET=paradise-yatra-secret-key-2024
-   NODE_ENV=development
-   ```
 
 4. **Start the server**
    ```bash
