@@ -13,7 +13,6 @@ const getDashboardStats = async (req, res) => {
     const totalPackages = await Package.countDocuments();
     const totalDestinations = await Destination.countDocuments();
     const totalBlogs = await Blog.countDocuments();
-
     const packageStats = await Package.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
