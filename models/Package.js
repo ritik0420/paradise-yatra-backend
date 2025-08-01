@@ -58,9 +58,21 @@ const packageSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    description: {
+    activities: [{
       type: String,
       required: true
+    }],
+    accommodation: {
+      type: String,
+      required: true
+    },
+    meals: {
+      type: String,
+      required: true
+    },
+    image: {
+      type: String,
+      default: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     }
   }],
   inclusions: [{
