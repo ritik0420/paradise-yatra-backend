@@ -1,5 +1,24 @@
 const Package = require('../models/Package');
 
+// Helper function to transform image paths to full URLs
+const transformImageUrls = (packages, req) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  
+  return packages.map(pkg => {
+    if (pkg.images && Array.isArray(pkg.images)) {
+      pkg.images = pkg.images.map(img => {
+        // If the image is already a full URL, return as is
+        if (img.startsWith('http')) {
+          return img;
+        }
+        // If it's a file path, convert to full URL
+        return `${baseUrl}/${img}`;
+      });
+    }
+    return pkg;
+  });
+};
+
 // Get all packages
 const getAllPackages = async (req, res) => {
   try {
@@ -22,8 +41,11 @@ const getAllPackages = async (req, res) => {
 
     const total = await Package.countDocuments(query);
 
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
     res.json({
-      packages,
+      packages: transformedPackages,
       pagination: {
         current: parseInt(page),
         total: Math.ceil(total / parseInt(limit)),
@@ -46,7 +68,10 @@ const getPackage = async (req, res) => {
       return res.status(404).json({ message: 'Package not found.' });
     }
 
-    res.json(package);
+    // Transform image URLs
+    const transformedPackage = transformImageUrls([package], req)[0];
+
+    res.json(transformedPackage);
   } catch (error) {
     console.error('Get package error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -77,15 +102,21 @@ const createPackage = async (req, res) => {
 
     // Handle image uploads if present
     if (req.files && req.files.length > 0) {
-      req.body.images = req.files.map(file => file.path || file.url);
+      req.body.images = req.files.map(file => {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        return `${baseUrl}/${file.path}`;
+      });
     }
 
     const package = new Package(req.body);
     await package.save();
     
+    // Transform image URLs
+    const transformedPackage = transformImageUrls([package], req)[0];
+    
     res.status(201).json({
       message: 'Package created successfully',
-      package
+      package: transformedPackage
     });
   } catch (error) {
     console.error('Create package error:', error);
@@ -122,7 +153,10 @@ const updatePackage = async (req, res) => {
 
     // Handle image uploads if present
     if (req.files && req.files.length > 0) {
-      req.body.images = req.files.map(file => file.path || file.url);
+      req.body.images = req.files.map(file => {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        return `${baseUrl}/${file.path}`;
+      });
     }
 
     const package = await Package.findByIdAndUpdate(
@@ -131,9 +165,12 @@ const updatePackage = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // Transform image URLs
+    const transformedPackage = transformImageUrls([package], req)[0];
+
     res.json({
       message: 'Package updated successfully',
-      package
+      package: transformedPackage
     });
   } catch (error) {
     console.error('Update package error:', error);
@@ -173,7 +210,10 @@ const getPackagesByCategory = async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(parseInt(limit));
 
-    res.json(packages);
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
+    res.json(transformedPackages);
   } catch (error) {
     console.error('Get packages by category error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -206,7 +246,11 @@ const searchPackages = async (req, res) => {
     }
 
     const packages = await Package.find(query).sort({ createdAt: -1 });
-    res.json(packages);
+    
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+    
+    res.json(transformedPackages);
   } catch (error) {
     console.error('Search packages error:', error);
     res.status(500).json({ message: 'Server error.' });

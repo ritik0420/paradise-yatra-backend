@@ -53,12 +53,18 @@ const packageRoutes = require('./routes/packages');
 const destinationRoutes = require('./routes/destinations');
 const blogRoutes = require('./routes/blogs');
 const adminRoutes = require('./routes/admin');
+const testimonialRoutes = require('./routes/testimonials');
+const heroRoutes = require('./routes/hero');
+const ctaRoutes = require('./routes/cta');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/hero', heroRoutes);
+app.use('/api/cta', ctaRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -1,5 +1,16 @@
 const Destination = require('../models/Destination');
 
+// Helper function to transform image paths to full URLs
+const transformDestinationImageUrl = (destination, req) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  
+  if (destination.image && !destination.image.startsWith('http')) {
+    destination.image = `${baseUrl}/${destination.image}`;
+  }
+  
+  return destination;
+};
+
 // Get all destinations
 const getAllDestinations = async (req, res) => {
   try {
@@ -18,8 +29,11 @@ const getAllDestinations = async (req, res) => {
 
     const total = await Destination.countDocuments(query);
 
+    // Transform image URLs
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+
     res.json({
-      destinations,
+      destinations: transformedDestinations,
       pagination: {
         current: parseInt(page),
         total: Math.ceil(total / parseInt(limit)),
@@ -46,7 +60,10 @@ const getDestination = async (req, res) => {
     destination.visitCount += 1;
     await destination.save();
 
-    res.json(destination);
+    // Transform image URL
+    const transformedDestination = transformDestinationImageUrl(destination, req);
+
+    res.json(transformedDestination);
   } catch (error) {
     console.error('Get destination error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -59,9 +76,12 @@ const createDestination = async (req, res) => {
     const destination = new Destination(req.body);
     await destination.save();
     
+    // Transform image URL
+    const transformedDestination = transformDestinationImageUrl(destination, req);
+    
     res.status(201).json({
       message: 'Destination created successfully',
-      destination
+      destination: transformedDestination
     });
   } catch (error) {
     console.error('Create destination error:', error);
@@ -82,9 +102,12 @@ const updateDestination = async (req, res) => {
       return res.status(404).json({ message: 'Destination not found.' });
     }
 
+    // Transform image URL
+    const transformedDestination = transformDestinationImageUrl(destination, req);
+
     res.json({
       message: 'Destination updated successfully',
-      destination
+      destination: transformedDestination
     });
   } catch (error) {
     console.error('Update destination error:', error);
@@ -120,7 +143,10 @@ const getTrendingDestinations = async (req, res) => {
     .sort({ visitCount: -1, createdAt: -1 })
     .limit(parseInt(limit));
 
-    res.json(destinations);
+    // Transform image URLs
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+
+    res.json(transformedDestinations);
   } catch (error) {
     console.error('Get trending destinations error:', error);
     res.status(500).json({ message: 'Server error.' });
@@ -146,7 +172,11 @@ const searchDestinations = async (req, res) => {
     }
 
     const destinations = await Destination.find(query).sort({ visitCount: -1 });
-    res.json(destinations);
+    
+    // Transform image URLs
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    
+    res.json(transformedDestinations);
   } catch (error) {
     console.error('Search destinations error:', error);
     res.status(500).json({ message: 'Server error.' });
