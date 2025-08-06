@@ -6,6 +6,12 @@ const packageSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true
+  },
   description: {
     type: String,
     required: true

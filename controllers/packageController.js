@@ -19,6 +19,30 @@ const transformImageUrls = (packages, req) => {
   });
 };
 
+// Helper function to generate slug from title
+const generateSlug = (title) => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim('-');
+};
+
+// Helper function to generate unique slug
+const generateUniqueSlug = async (title) => {
+  let slug = generateSlug(title);
+  let counter = 1;
+  let uniqueSlug = slug;
+  
+  while (await Package.findOne({ slug: uniqueSlug })) {
+    uniqueSlug = `${slug}-${counter}`;
+    counter++;
+  }
+  
+  return uniqueSlug;
+};
+
 // Get all packages
 const getAllPackages = async (req, res) => {
   try {
@@ -100,6 +124,17 @@ const createPackage = async (req, res) => {
       return res.status(400).json({ message: 'Price must be a positive number' });
     }
 
+    // Generate unique slug if not provided
+    if (!req.body.slug) {
+      req.body.slug = await generateUniqueSlug(req.body.title);
+    } else {
+      // Check if provided slug is unique
+      const existingPackage = await Package.findOne({ slug: req.body.slug });
+      if (existingPackage) {
+        return res.status(400).json({ message: 'Slug already exists. Please choose a different one.' });
+      }
+    }
+
     // Handle image uploads if present
     if (req.files && req.files.length > 0) {
       req.body.images = req.files.map(file => {
@@ -149,6 +184,20 @@ const updatePackage = async (req, res) => {
     // Validate price if provided
     if (req.body.price !== undefined && req.body.price < 0) {
       return res.status(400).json({ message: 'Price must be a positive number' });
+    }
+
+    // Generate slug if missing or if title has changed
+    if (!req.body.slug || (req.body.title && req.body.title !== existingPackage.title)) {
+      req.body.slug = await generateUniqueSlug(req.body.title || existingPackage.title);
+    } else if (req.body.slug) {
+      // Check if provided slug is unique (excluding current package)
+      const existingPackageWithSlug = await Package.findOne({ 
+        slug: req.body.slug, 
+        _id: { $ne: packageId } 
+      });
+      if (existingPackageWithSlug) {
+        return res.status(400).json({ message: 'Slug already exists. Please choose a different one.' });
+      }
     }
 
     // Handle image uploads if present
@@ -298,9 +347,29 @@ const addReview = async (req, res) => {
   }
 };
 
+// Get package by slug
+const getPackageBySlug = async (req, res) => {
+  try {
+    const package = await Package.findOne({ slug: req.params.slug, isActive: true });
+    
+    if (!package) {
+      return res.status(404).json({ message: 'Package not found.' });
+    }
+
+    // Transform image URLs
+    const transformedPackage = transformImageUrls([package], req)[0];
+
+    res.json(transformedPackage);
+  } catch (error) {
+    console.error('Get package by slug error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 module.exports = {
   getAllPackages,
   getPackage,
+  getPackageBySlug,
   createPackage,
   updatePackage,
   deletePackage,

@@ -23,7 +23,7 @@ const getHeroContent = async (req, res) => {
         description: "Explore, dream, and discover with Paradise Yatra.",
         backgroundImage: "https://wallpapercave.com/wp/wp10918600.jpg",
         trustBadgeText: "Trusted by 5000+ travelers",
-        popularDestinations: ["Bali", "Thailand", "Europe", "Dubai", "Singapore"],
+        popularDestinations: ["Himachal Pradesh", "Uttarakhand", "Bali", "Europe", "Goa"],
         ctaButtonText: "Explore Packages",
         secondaryButtonText: "Watch Video"
       });

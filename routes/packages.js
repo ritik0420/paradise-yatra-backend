@@ -5,6 +5,7 @@ const { uploadPackageImages, handleUploadError } = require('../middleware/upload
 const {
   getAllPackages,
   getPackage,
+  getPackageBySlug,
   createPackage,
   updatePackage,
   deletePackage,
@@ -17,6 +18,7 @@ const {
 router.get('/', getAllPackages);
 router.get('/search', searchPackages);
 router.get('/category/:category', getPackagesByCategory);
+router.get('/slug/:slug', getPackageBySlug);
 router.get('/:id', getPackage);
 
 // Protected routes
