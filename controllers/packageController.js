@@ -366,6 +366,81 @@ const getPackageBySlug = async (req, res) => {
   }
 };
 
+// Suggest packages for search dropdown
+const suggestPackages = async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
+      return res.json({ suggestions: [] });
+    }
+
+    const searchQuery = q.trim();
+    
+    // Create case-insensitive search query for title and description
+    const query = {
+      isActive: true,
+      $or: [
+        { title: { $regex: searchQuery, $options: 'i' } },
+        { description: { $regex: searchQuery, $options: 'i' } },
+        { destination: { $regex: searchQuery, $options: 'i' } }
+      ]
+    };
+
+    // Find packages with relevance scoring
+    const packages = await Package.find(query)
+      .select('title description destination price duration category slug images')
+      .limit(10);
+
+    // Score and sort by relevance
+    const scoredPackages = packages.map(pkg => {
+      let score = 0;
+      const searchLower = searchQuery.toLowerCase();
+      
+      // Title matches get highest score
+      if (pkg.title.toLowerCase().includes(searchLower)) {
+        score += 10;
+        // Exact title match gets bonus
+        if (pkg.title.toLowerCase() === searchLower) {
+          score += 5;
+        }
+      }
+      
+      // Destination matches get medium score
+      if (pkg.destination.toLowerCase().includes(searchLower)) {
+        score += 8;
+      }
+      
+      // Description matches get lower score
+      if (pkg.description.toLowerCase().includes(searchLower)) {
+        score += 3;
+      }
+      
+      return { ...pkg.toObject(), score };
+    });
+
+    // Sort by score (descending) and take top 5
+    const suggestions = scoredPackages
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(pkg => ({
+        id: pkg._id,
+        title: pkg.title,
+        destination: pkg.destination,
+        price: pkg.price,
+        duration: pkg.duration,
+        category: pkg.category,
+        slug: pkg.slug,
+        image: pkg.images && pkg.images.length > 0 ? pkg.images[0] : null
+      }));
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Suggest packages error:', error);
+    res.status(500).json({ message: 'Server error during package suggestions.' });
+  }
+};
+
 module.exports = {
   getAllPackages,
   getPackage,
@@ -375,5 +450,6 @@ module.exports = {
   deletePackage,
   getPackagesByCategory,
   searchPackages,
-  addReview
+  addReview,
+  suggestPackages
 }; 

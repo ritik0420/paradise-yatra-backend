@@ -11,12 +11,14 @@ const {
   deletePackage,
   getPackagesByCategory,
   searchPackages,
-  addReview
+  addReview,
+  suggestPackages
 } = require('../controllers/packageController');
 
 // Public routes
 router.get('/', getAllPackages);
 router.get('/search', searchPackages);
+router.get('/suggest', suggestPackages);
 router.get('/category/:category', getPackagesByCategory);
 router.get('/slug/:slug', getPackageBySlug);
 router.get('/:id', getPackage);
