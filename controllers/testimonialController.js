@@ -5,7 +5,9 @@ const transformTestimonialImageUrl = (testimonial, req) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   
   if (testimonial.image && !testimonial.image.startsWith('http')) {
-    testimonial.image = `${baseUrl}/${testimonial.image}`;
+    // Remove leading slash to avoid double slashes
+    const cleanImagePath = testimonial.image.startsWith('/') ? testimonial.image.substring(1) : testimonial.image;
+    testimonial.image = `${baseUrl}/${cleanImagePath}`;
   }
   
   return testimonial;

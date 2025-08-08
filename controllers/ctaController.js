@@ -5,7 +5,9 @@ const transformCTAImageUrl = (ctaContent, req) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   
   if (ctaContent.backgroundImage && !ctaContent.backgroundImage.startsWith('http')) {
-    ctaContent.backgroundImage = `${baseUrl}/${ctaContent.backgroundImage}`;
+    // Remove leading slash to avoid double slashes
+    const cleanImagePath = ctaContent.backgroundImage.startsWith('/') ? ctaContent.backgroundImage.substring(1) : ctaContent.backgroundImage;
+    ctaContent.backgroundImage = `${baseUrl}/${cleanImagePath}`;
   }
   
   return ctaContent;

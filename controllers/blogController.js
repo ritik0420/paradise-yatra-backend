@@ -5,7 +5,9 @@ const transformBlogImageUrl = (blog, req) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   
   if (blog.image && !blog.image.startsWith('http')) {
-    blog.image = `${baseUrl}/${blog.image}`;
+    // Remove leading slash to avoid double slashes
+    const cleanImagePath = blog.image.startsWith('/') ? blog.image.substring(1) : blog.image;
+    blog.image = `${baseUrl}/${cleanImagePath}`;
   }
   
   return blog;

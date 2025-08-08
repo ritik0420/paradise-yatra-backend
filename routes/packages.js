@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { auth, adminAuth } = require('../middleware/auth');
-const { uploadPackageImages, handleUploadError } = require('../middleware/upload');
+const { uploadPackageImages, uploadSingleImage, handleUploadError } = require('../middleware/upload');
 const {
   getAllPackages,
   getPackage,
@@ -27,8 +27,8 @@ router.get('/:id', getPackage);
 router.post('/:id/reviews', auth, addReview);
 
 // Admin routes with file upload
-router.post('/', adminAuth, uploadPackageImages, handleUploadError, createPackage);
-router.put('/:id', adminAuth, uploadPackageImages, handleUploadError, updatePackage);
+router.post('/', adminAuth, uploadSingleImage, handleUploadError, createPackage);
+router.put('/:id', adminAuth, uploadSingleImage, handleUploadError, updatePackage);
 router.delete('/:id', adminAuth, deletePackage);
 
 module.exports = router; 

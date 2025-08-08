@@ -5,7 +5,9 @@ const transformHeroImageUrl = (heroContent, req) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   
   if (heroContent.backgroundImage && !heroContent.backgroundImage.startsWith('http')) {
-    heroContent.backgroundImage = `${baseUrl}/${heroContent.backgroundImage}`;
+    // Remove leading slash to avoid double slashes
+    const cleanImagePath = heroContent.backgroundImage.startsWith('/') ? heroContent.backgroundImage.substring(1) : heroContent.backgroundImage;
+    heroContent.backgroundImage = `${baseUrl}/${cleanImagePath}`;
   }
   
   return heroContent;

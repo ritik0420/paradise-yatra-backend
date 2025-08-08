@@ -5,7 +5,9 @@ const transformDestinationImageUrl = (destination, req) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   
   if (destination.image && !destination.image.startsWith('http')) {
-    destination.image = `${baseUrl}/${destination.image}`;
+    // Remove leading slash to avoid double slashes
+    const cleanImagePath = destination.image.startsWith('/') ? destination.image.substring(1) : destination.image;
+    destination.image = `${baseUrl}/${cleanImagePath}`;
   }
   
   return destination;
@@ -73,6 +75,11 @@ const getDestination = async (req, res) => {
 // Create destination (Admin only)
 const createDestination = async (req, res) => {
   try {
+    // If image file is uploaded, use the uploaded file path
+    if (req.file) {
+      req.body.image = `/uploads/${req.file.filename}`;
+    }
+    
     const destination = new Destination(req.body);
     await destination.save();
     
@@ -92,6 +99,11 @@ const createDestination = async (req, res) => {
 // Update destination (Admin only)
 const updateDestination = async (req, res) => {
   try {
+    // If image file is uploaded, use the uploaded file path
+    if (req.file) {
+      req.body.image = `/uploads/${req.file.filename}`;
+    }
+    
     const destination = await Destination.findByIdAndUpdate(
       req.params.id,
       req.body,

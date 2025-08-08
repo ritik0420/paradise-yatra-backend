@@ -12,7 +12,9 @@ const transformImageUrls = (packages, req) => {
           return img;
         }
         // If it's a file path, convert to full URL
-        return `${baseUrl}/${img}`;
+        // Remove leading slash to avoid double slashes
+        const cleanImagePath = img.startsWith('/') ? img.substring(1) : img;
+        return `${baseUrl}/${cleanImagePath}`;
       });
     }
     return pkg;
@@ -143,6 +145,16 @@ const createPackage = async (req, res) => {
       });
     }
 
+    // Handle single image upload if present
+    if (req.file) {
+      req.body.image = `/uploads/${req.file.filename}`;
+    }
+
+    // Handle single image upload if present
+    if (req.file) {
+      req.body.image = `/uploads/${req.file.filename}`;
+    }
+
     const package = new Package(req.body);
     await package.save();
     
@@ -206,6 +218,11 @@ const updatePackage = async (req, res) => {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         return `${baseUrl}/${file.path}`;
       });
+    }
+
+    // Handle single image upload if present
+    if (req.file) {
+      req.body.image = `/uploads/${req.file.filename}`;
     }
 
     const package = await Package.findByIdAndUpdate(
