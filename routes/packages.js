@@ -16,6 +16,13 @@ const {
 } = require('../controllers/packageController');
 
 // Public routes
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Packages API is running',
+    timestamp: new Date().toISOString()
+  });
+});
 router.get('/', getAllPackages);
 router.get('/search', searchPackages);
 router.get('/suggest', suggestPackages);

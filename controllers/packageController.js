@@ -394,67 +394,108 @@ const suggestPackages = async (req, res) => {
 
     const searchQuery = q.trim();
     
+    // Validate search query length
+    if (searchQuery.length < 2) {
+      return res.json({ suggestions: [] });
+    }
+    
     // Create case-insensitive search query for title and description
     const query = {
       isActive: true,
-      $or: [
-        { title: { $regex: searchQuery, $options: 'i' } },
-        { description: { $regex: searchQuery, $options: 'i' } },
-        { destination: { $regex: searchQuery, $options: 'i' } }
+      $and: [
+        {
+          $or: [
+            { title: { $regex: searchQuery, $options: 'i' } },
+            { description: { $regex: searchQuery, $options: 'i' } },
+            { destination: { $regex: searchQuery, $options: 'i' } }
+          ]
+        },
+        // Ensure required fields exist and are not null/undefined
+        { title: { $exists: true, $ne: null, $ne: '' } },
+        { destination: { $exists: true, $ne: null, $ne: '' } }
       ]
     };
+
+    console.log('Search query:', searchQuery);
+    console.log('MongoDB query:', JSON.stringify(query));
 
     // Find packages with relevance scoring
     const packages = await Package.find(query)
       .select('title description destination price duration category slug images')
-      .limit(10);
+      .limit(10)
+      .lean(); // Use lean() for better performance
 
-    // Score and sort by relevance
+    console.log(`Found ${packages.length} packages matching query`);
+
+    if (!packages || packages.length === 0) {
+      return res.json({ suggestions: [] });
+    }
+
+    // Score and sort by relevance with error handling
     const scoredPackages = packages.map(pkg => {
-      let score = 0;
-      const searchLower = searchQuery.toLowerCase();
-      
-      // Title matches get highest score
-      if (pkg.title.toLowerCase().includes(searchLower)) {
-        score += 10;
-        // Exact title match gets bonus
-        if (pkg.title.toLowerCase() === searchLower) {
-          score += 5;
+      try {
+        let score = 0;
+        const searchLower = searchQuery.toLowerCase();
+        
+        // Safely check title
+        if (pkg.title && typeof pkg.title === 'string') {
+          if (pkg.title.toLowerCase().includes(searchLower)) {
+            score += 10;
+            // Exact title match gets bonus
+            if (pkg.title.toLowerCase() === searchLower) {
+              score += 5;
+            }
+          }
         }
+        
+        // Safely check destination
+        if (pkg.destination && typeof pkg.destination === 'string') {
+          if (pkg.destination.toLowerCase().includes(searchLower)) {
+            score += 8;
+          }
+        }
+        
+        // Safely check description
+        if (pkg.description && typeof pkg.description === 'string') {
+          if (pkg.description.toLowerCase().includes(searchLower)) {
+            score += 3;
+          }
+        }
+        
+        return { ...pkg, score };
+      } catch (err) {
+        console.error('Error processing package:', pkg._id, err);
+        return { ...pkg, score: 0 };
       }
-      
-      // Destination matches get medium score
-      if (pkg.destination.toLowerCase().includes(searchLower)) {
-        score += 8;
-      }
-      
-      // Description matches get lower score
-      if (pkg.description.toLowerCase().includes(searchLower)) {
-        score += 3;
-      }
-      
-      return { ...pkg.toObject(), score };
     });
 
     // Sort by score (descending) and take top 5
     const suggestions = scoredPackages
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, 5)
       .map(pkg => ({
         id: pkg._id,
-        title: pkg.title,
-        destination: pkg.destination,
-        price: pkg.price,
-        duration: pkg.duration,
-        category: pkg.category,
-        slug: pkg.slug,
-        image: pkg.images && pkg.images.length > 0 ? pkg.images[0] : null
+        title: pkg.title || 'Untitled Package',
+        destination: pkg.destination || 'Unknown Destination',
+        price: pkg.price || 0,
+        duration: pkg.duration || 'N/A',
+        category: pkg.category || 'holiday',
+        slug: pkg.slug || '',
+        image: pkg.images && Array.isArray(pkg.images) && pkg.images.length > 0 ? pkg.images[0] : null
       }));
 
+    console.log(`Returning ${suggestions.length} suggestions`);
     res.json({ suggestions });
+    
   } catch (error) {
     console.error('Suggest packages error:', error);
-    res.status(500).json({ message: 'Server error during package suggestions.' });
+    console.error('Error stack:', error.stack);
+    
+    // Return empty suggestions instead of 500 error
+    res.json({ 
+      suggestions: [],
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Search temporarily unavailable'
+    });
   }
 };
 

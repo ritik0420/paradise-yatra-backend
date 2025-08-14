@@ -136,4 +136,11 @@ packageSchema.virtual('discountedPrice').get(function() {
 packageSchema.set('toJSON', { virtuals: true });
 packageSchema.set('toObject', { virtuals: true });
 
+// Add indexes for better search performance
+packageSchema.index({ title: 'text', description: 'text', destination: 'text' });
+packageSchema.index({ isActive: 1 });
+packageSchema.index({ title: 1 });
+packageSchema.index({ destination: 1 });
+packageSchema.index({ category: 1 });
+
 module.exports = mongoose.model('Package', packageSchema); 
