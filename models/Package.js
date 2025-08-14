@@ -45,7 +45,7 @@ const packageSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['premium', 'adventure', 'holiday', 'trending'],
+    enum: ['premium', 'adventure', 'holiday', 'trending', 'international', 'india'],
     required: true
   },
   images: [{
