@@ -55,10 +55,12 @@ const blogRoutes = require('./routes/blogs');
 const adminRoutes = require('./routes/admin');
 const testimonialRoutes = require('./routes/testimonials');
 const heroRoutes = require('./routes/hero');
+const headerRoutes = require('./routes/header');
 const ctaRoutes = require('./routes/cta');
 const holidayTypeRoutes = require('./routes/holidayTypes');
 const uploadRoutes = require('./routes/upload');
 const fixedDepartureRoutes = require('./routes/fixedDepartures');
+const footerRoutes = require('./routes/footer');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
@@ -67,10 +69,12 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/hero', heroRoutes);
+app.use('/api/header', headerRoutes);
 app.use('/api/cta', ctaRoutes);
 app.use('/api/holiday-types', holidayTypeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/fixed-departures', fixedDepartureRoutes);
+app.use('/api/footer', footerRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
