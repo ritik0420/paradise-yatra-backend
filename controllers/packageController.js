@@ -48,7 +48,7 @@ const generateUniqueSlug = async (title) => {
 // Get all packages
 const getAllPackages = async (req, res) => {
   try {
-    const { category, featured, limit = 10, page = 1 } = req.query;
+    const { category, featured, tourType, country, state, holidayType, limit = 10, page = 1 } = req.query;
     
     let query = { isActive: true };
     
@@ -58,6 +58,22 @@ const getAllPackages = async (req, res) => {
     
     if (featured === 'true') {
       query.isFeatured = true;
+    }
+
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    if (holidayType) {
+      query.holidayType = holidayType;
     }
 
     const packages = await Package.find(query)
@@ -108,7 +124,7 @@ const getPackage = async (req, res) => {
 const createPackage = async (req, res) => {
   try {
     // Validate required fields
-    const requiredFields = ['title', 'description', 'shortDescription', 'price', 'duration', 'destination', 'category'];
+    const requiredFields = ['title', 'description', 'shortDescription', 'price', 'duration', 'destination', 'category', 'country', 'tourType'];
     for (const field of requiredFields) {
       if (!req.body[field]) {
         return res.status(400).json({ message: `${field} is required` });
@@ -116,9 +132,15 @@ const createPackage = async (req, res) => {
     }
 
     // Validate category
-    const validCategories = ['premium', 'adventure', 'holiday', 'trending'];
+    const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
     if (!validCategories.includes(req.body.category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be one of: premium, adventure, holiday, trending' });
+      return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+    }
+
+    // Validate tour type
+    const validTourTypes = ['international', 'india'];
+    if (!validTourTypes.includes(req.body.tourType)) {
+      return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
     }
 
     // Validate price
@@ -187,9 +209,17 @@ const updatePackage = async (req, res) => {
 
     // Validate category if provided
     if (req.body.category) {
-      const validCategories = ['premium', 'adventure', 'holiday', 'trending'];
+      const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
       if (!validCategories.includes(req.body.category)) {
-        return res.status(400).json({ message: 'Invalid category. Must be one of: premium, adventure, holiday, trending' });
+        return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+      }
+    }
+
+    // Validate tour type if provided
+    if (req.body.tourType) {
+      const validTourTypes = ['international', 'india'];
+      if (!validTourTypes.includes(req.body.tourType)) {
+        return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
       }
     }
 
@@ -499,6 +529,191 @@ const suggestPackages = async (req, res) => {
   }
 };
 
+// Get packages by tour type (international/india)
+const getPackagesByTourType = async (req, res) => {
+  try {
+    const { tourType } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    const packages = await Package.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await Package.countDocuments(query);
+
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
+    res.json({
+      packages: transformedPackages,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get packages by tour type error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get packages by country
+const getPackagesByCountry = async (req, res) => {
+  try {
+    const { country } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    const packages = await Package.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await Package.countDocuments(query);
+
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
+    res.json({
+      packages: transformedPackages,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get packages by country error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get packages by holiday type
+const getPackagesByHolidayType = async (req, res) => {
+  try {
+    const { holidayTypeId } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (holidayTypeId) {
+      query.holidayType = holidayTypeId;
+    }
+
+    const packages = await Package.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await Package.countDocuments(query);
+
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
+    res.json({
+      packages: transformedPackages,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get packages by holiday type error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get packages by state
+const getPackagesByState = async (req, res) => {
+  try {
+    const { state } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    const packages = await Package.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await Package.countDocuments(query);
+
+    // Transform image URLs
+    const transformedPackages = transformImageUrls(packages, req);
+
+    res.json({
+      packages: transformedPackages,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get packages by state error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get all countries available in packages
+const getAvailableCountries = async (req, res) => {
+  try {
+    const countries = await Package.distinct('country', { isActive: true });
+    res.json({ countries: countries.sort() });
+  } catch (error) {
+    console.error('Get available countries error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get all tour types available in packages
+const getAvailableTourTypes = async (req, res) => {
+  try {
+    const tourTypes = await Package.distinct('tourType', { isActive: true });
+    res.json({ tourTypes: tourTypes.sort() });
+  } catch (error) {
+    console.error('Get available tour types error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get all states available in packages
+const getAvailableStates = async (req, res) => {
+  try {
+    const states = await Package.distinct('state', { isActive: true, state: { $exists: true, $ne: null, $ne: '' } });
+    res.json({ states: states.sort() });
+  } catch (error) {
+    console.error('Get available states error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
 module.exports = {
   getAllPackages,
   getPackage,
@@ -509,5 +724,12 @@ module.exports = {
   getPackagesByCategory,
   searchPackages,
   addReview,
-  suggestPackages
+  suggestPackages,
+  getPackagesByTourType,
+  getPackagesByCountry,
+  getPackagesByState,
+  getPackagesByHolidayType,
+  getAvailableCountries,
+  getAvailableTourTypes,
+  getAvailableStates
 }; 

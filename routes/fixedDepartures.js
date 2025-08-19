@@ -12,7 +12,13 @@ const {
   toggleFeatured,
   toggleStatus,
   getFeaturedFixedDepartures,
-  searchFixedDepartures
+  searchFixedDepartures,
+  getFixedDeparturesByTourType,
+  getFixedDeparturesByCountry,
+  getFixedDeparturesByState,
+  getAvailableCountries,
+  getAvailableTourTypes,
+  getAvailableStates
 } = require('../controllers/fixedDepartureController');
 
 // Public routes
@@ -27,6 +33,17 @@ router.get('/health', (req, res) => {
 router.get('/', getAllFixedDepartures);
 router.get('/featured', getFeaturedFixedDepartures);
 router.get('/search', searchFixedDepartures);
+
+// New filtering routes
+router.get('/tour-type/:tourType', getFixedDeparturesByTourType);
+router.get('/country/:country', getFixedDeparturesByCountry);
+router.get('/state/:state', getFixedDeparturesByState);
+
+// Utility routes for available options
+router.get('/countries', getAvailableCountries);
+router.get('/tour-types', getAvailableTourTypes);
+router.get('/states', getAvailableStates);
+
 router.get('/slug/:slug', getFixedDepartureBySlug);
 router.get('/:id', getFixedDeparture);
 

@@ -43,10 +43,36 @@ const packageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Updated category enum to match holiday type titles
   category: {
     type: String,
-    enum: ['premium', 'adventure', 'holiday', 'trending', 'international', 'india'],
+    enum: ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'],
     required: true
+  },
+  // New field: Reference to HolidayType for better categorization
+  holidayType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HolidayType',
+    required: false
+  },
+  // New field: Country for international/national classification
+  country: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  // New field: State for India tours
+  state: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  // New field: Tour type classification
+  tourType: {
+    type: String,
+    enum: ['international', 'india'],
+    required: true,
+    default: 'india'
   },
   images: [{
     type: String,
@@ -142,5 +168,12 @@ packageSchema.index({ isActive: 1 });
 packageSchema.index({ title: 1 });
 packageSchema.index({ destination: 1 });
 packageSchema.index({ category: 1 });
+packageSchema.index({ holidayType: 1 });
+packageSchema.index({ country: 1 });
+packageSchema.index({ state: 1 });
+packageSchema.index({ tourType: 1 });
+packageSchema.index({ tourType: 1, country: 1 }); // Compound index for tour type + country filtering
+packageSchema.index({ tourType: 1, state: 1 }); // Compound index for tour type + state filtering
+packageSchema.index({ country: 1, state: 1 }); // Compound index for country + state filtering
 
 module.exports = mongoose.model('Package', packageSchema); 

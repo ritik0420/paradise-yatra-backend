@@ -22,6 +22,37 @@ const destinationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // New field: Reference to HolidayType for better categorization
+  holidayType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HolidayType',
+    required: false
+  },
+  // New field: Country for international/national classification
+  country: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  // New field: State for India destinations
+  state: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  // New field: Tour type classification
+  tourType: {
+    type: String,
+    enum: ['international', 'india'],
+    required: true,
+    default: 'india'
+  },
+  // New field: Category to match holiday type titles
+  category: {
+    type: String,
+    enum: ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'],
+    required: true
+  },
   rating: {
     type: Number,
     min: 0,
@@ -53,5 +84,19 @@ const destinationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Add indexes for better search performance
+destinationSchema.index({ name: 'text', description: 'text', location: 'text' });
+destinationSchema.index({ isActive: 1 });
+destinationSchema.index({ name: 1 });
+destinationSchema.index({ location: 1 });
+destinationSchema.index({ holidayType: 1 });
+destinationSchema.index({ country: 1 });
+destinationSchema.index({ state: 1 });
+destinationSchema.index({ tourType: 1 });
+destinationSchema.index({ category: 1 });
+destinationSchema.index({ tourType: 1, country: 1 }); // Compound index for tour type + country filtering
+destinationSchema.index({ tourType: 1, state: 1 }); // Compound index for tour type + state filtering
+destinationSchema.index({ country: 1, state: 1 }); // Compound index for country + state filtering
 
 module.exports = mongoose.model('Destination', destinationSchema); 

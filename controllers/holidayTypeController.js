@@ -160,6 +160,111 @@ const updateHolidayTypeOrder = async (req, res) => {
   }
 };
 
+// Search holiday types
+const searchHolidayTypes = async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length === 0) {
+      return res.json({ holidayTypes: [] });
+    }
+
+    const searchQuery = q.trim();
+    
+    // Validate search query length
+    if (searchQuery.length < 2) {
+      return res.json({ holidayTypes: [] });
+    }
+    
+    // Create case-insensitive search query for name and description
+    const query = {
+      isActive: true,
+      $and: [
+        {
+          $or: [
+            { name: { $regex: searchQuery, $options: 'i' } },
+            { description: { $regex: searchQuery, $options: 'i' } },
+            { shortDescription: { $regex: searchQuery, $options: 'i' } }
+          ]
+        },
+        // Ensure required fields exist and are not null/undefined
+        { name: { $exists: true, $ne: null, $ne: '' } }
+      ]
+    };
+
+    console.log('Holiday type search query:', searchQuery);
+    console.log('MongoDB query:', JSON.stringify(query));
+
+    // Find holiday types with relevance scoring
+    const holidayTypes = await HolidayType.find(query)
+      .select('name description shortDescription isFeatured slug image')
+      .limit(10)
+      .lean();
+
+    console.log(`Found ${holidayTypes.length} holiday types matching query`);
+
+    if (!holidayTypes || holidayTypes.length === 0) {
+      return res.json({ holidayTypes: [] });
+    }
+
+    // Score and sort by relevance
+    const scoredHolidayTypes = holidayTypes.map(ht => {
+      try {
+        let score = 0;
+        const searchLower = searchQuery.toLowerCase();
+        
+        // Safely check name
+        if (ht.name && typeof ht.name === 'string') {
+          if (ht.name.toLowerCase().includes(searchLower)) {
+            score += 10;
+            // Exact name match gets bonus
+            if (ht.name.toLowerCase() === searchLower) {
+              score += 5;
+            }
+          }
+        }
+        
+        // Safely check description
+        if (ht.description && typeof ht.description === 'string') {
+          if (ht.description.toLowerCase().includes(searchLower)) {
+            score += 3;
+          }
+        }
+        
+        // Safely check short description
+        if (ht.shortDescription && typeof ht.shortDescription === 'string') {
+          if (ht.shortDescription.toLowerCase().includes(searchLower)) {
+            score += 2;
+          }
+        }
+        
+        return { ...ht, score };
+      } catch (err) {
+        console.error('Error processing holiday type:', ht._id, err);
+        return { ...ht, score: 0 };
+      }
+    });
+
+    // Sort by score (descending) and take top 5
+    const suggestions = scoredHolidayTypes
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 5);
+
+    console.log(`Returning ${suggestions.length} holiday type suggestions`);
+    res.json({ holidayTypes: suggestions });
+    
+  } catch (error) {
+    console.error('Search holiday types error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Return empty suggestions instead of 500 error
+    res.json({ 
+      holidayTypes: [],
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Search temporarily unavailable'
+    });
+  }
+};
+
 module.exports = {
   getAllHolidayTypes,
   getAllHolidayTypesAdmin,
@@ -170,5 +275,6 @@ module.exports = {
   deleteHolidayType,
   toggleHolidayTypeStatus,
   toggleHolidayTypeFeatured,
-  updateHolidayTypeOrder
+  updateHolidayTypeOrder,
+  searchHolidayTypes
 }; 

@@ -11,11 +11,13 @@ const {
   deleteHolidayType,
   toggleHolidayTypeStatus,
   toggleHolidayTypeFeatured,
-  updateHolidayTypeOrder
+  updateHolidayTypeOrder,
+  searchHolidayTypes
 } = require('../controllers/holidayTypeController');
 
 // Public routes
 router.get('/', getAllHolidayTypes);
+router.get('/search', searchHolidayTypes);
 router.get('/slug/:slug', getHolidayTypeBySlug);
 router.get('/:id', getHolidayType);
 

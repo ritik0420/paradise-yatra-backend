@@ -3,7 +3,7 @@ const FixedDeparture = require('../models/FixedDeparture');
 // Get all fixed departures
 const getAllFixedDepartures = async (req, res) => {
   try {
-     const { page = 1, limit = 10, status, featured } = req.query;
+     const { page = 1, limit = 10, status, featured, tourType, country, state, category, holidayType } = req.query;
     
     const query = { isActive: true };
     
@@ -13,6 +13,26 @@ const getAllFixedDepartures = async (req, res) => {
     
     if (featured === 'true') {
       query.isFeatured = true;
+    }
+
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (holidayType) {
+      query.holidayType = holidayType;
     }
 
     const options = {
@@ -89,6 +109,11 @@ const createFixedDeparture = async (req, res) => {
       discount,
       duration,
       destination,
+      holidayType,
+      country,
+      state,
+      tourType,
+      category,
       departureDate,
       returnDate,
       availableSeats,
@@ -100,6 +125,26 @@ const createFixedDeparture = async (req, res) => {
       terms,
       images
     } = req.body;
+
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'shortDescription', 'price', 'duration', 'destination', 'country', 'tourType', 'category'];
+    for (const field of requiredFields) {
+      if (!req.body[field]) {
+        return res.status(400).json({ message: `${field} is required` });
+      }
+    }
+
+    // Validate tour type
+    const validTourTypes = ['international', 'india'];
+    if (!validTourTypes.includes(req.body.tourType)) {
+      return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+    }
+
+    // Validate category
+    const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
+    if (!validCategories.includes(req.body.category)) {
+      return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+    }
 
     // Check if slug already exists
     const existingFixedDeparture = await FixedDeparture.findOne({ slug });
@@ -117,6 +162,11 @@ const createFixedDeparture = async (req, res) => {
       discount,
       duration,
       destination,
+      holidayType,
+      country,
+      state,
+      tourType,
+      category,
       departureDate,
       returnDate,
       availableSeats,
@@ -150,6 +200,11 @@ const updateFixedDeparture = async (req, res) => {
       discount,
       duration,
       destination,
+      holidayType,
+      country,
+      state,
+      tourType,
+      category,
       departureDate,
       returnDate,
       availableSeats,
@@ -164,6 +219,22 @@ const updateFixedDeparture = async (req, res) => {
       isFeatured,
       status
     } = req.body;
+
+    // Validate tour type if provided
+    if (req.body.tourType) {
+      const validTourTypes = ['international', 'india'];
+      if (!validTourTypes.includes(req.body.tourType)) {
+        return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+      }
+    }
+
+    // Validate category if provided
+    if (req.body.category) {
+      const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
+      if (!validCategories.includes(req.body.category)) {
+        return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+      }
+    }
 
     // Check if slug already exists for other fixed departures
     if (slug) {
@@ -188,6 +259,11 @@ const updateFixedDeparture = async (req, res) => {
         discount,
         duration,
         destination,
+        holidayType,
+        country,
+        state,
+        tourType,
+        category,
         departureDate,
         returnDate,
         availableSeats,
@@ -288,7 +364,7 @@ const getFeaturedFixedDepartures = async (req, res) => {
 // Search fixed departures
 const searchFixedDepartures = async (req, res) => {
   try {
-    const { q, destination, status, minPrice, maxPrice } = req.query;
+    const { q, destination, status, minPrice, maxPrice, tourType, country, state, category } = req.query;
     
     const query = { isActive: true };
     
@@ -304,6 +380,22 @@ const searchFixedDepartures = async (req, res) => {
       query.status = status;
     }
     
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+    
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = parseFloat(minPrice);
@@ -311,6 +403,7 @@ const searchFixedDepartures = async (req, res) => {
     }
 
     const fixedDepartures = await FixedDeparture.find(query)
+      .populate('holidayType', 'title slug image')
       .sort({ departureDate: 1 })
       .limit(20);
     
@@ -318,6 +411,144 @@ const searchFixedDepartures = async (req, res) => {
   } catch (error) {
     console.error('Error searching fixed departures:', error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get fixed departures by tour type
+const getFixedDeparturesByTourType = async (req, res) => {
+  try {
+    const { tourType } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    const fixedDepartures = await FixedDeparture.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ departureDate: 1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await FixedDeparture.countDocuments(query);
+
+    res.json({
+      fixedDepartures,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get fixed departures by tour type error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get fixed departures by country
+const getFixedDeparturesByCountry = async (req, res) => {
+  try {
+    const { country } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    const fixedDepartures = await FixedDeparture.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ departureDate: 1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await FixedDeparture.countDocuments(query);
+
+    res.json({
+      fixedDepartures,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get fixed departures by country error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get fixed departures by state
+const getFixedDeparturesByState = async (req, res) => {
+  try {
+    const { state } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+    
+    let query = { isActive: true };
+    
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    const fixedDepartures = await FixedDeparture.find(query)
+      .populate('holidayType', 'title slug image')
+      .sort({ departureDate: 1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+    const total = await FixedDeparture.countDocuments(query);
+
+    res.json({
+      fixedDepartures,
+      pagination: {
+        current: parseInt(page),
+        total: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get fixed departures by state error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get available countries
+const getAvailableCountries = async (req, res) => {
+  try {
+    const countries = await FixedDeparture.distinct('country', { isActive: true });
+    res.json({ countries: countries.sort() });
+  } catch (error) {
+    console.error('Get available countries error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get available tour types
+const getAvailableTourTypes = async (req, res) => {
+  try {
+    const tourTypes = await FixedDeparture.distinct('tourType', { isActive: true });
+    res.json({ tourTypes: tourTypes.sort() });
+  } catch (error) {
+    console.error('Get available tour types error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+};
+
+// Get available states
+const getAvailableStates = async (req, res) => {
+  try {
+    const states = await FixedDeparture.distinct('state', { isActive: true, state: { $exists: true, $ne: null, $ne: '' } });
+    res.json({ states: states.sort() });
+  } catch (error) {
+    console.error('Get available states error:', error);
+    res.status(500).json({ message: 'Server error.' });
   }
 };
 
@@ -331,5 +562,11 @@ module.exports = {
   toggleFeatured,
   toggleStatus,
   getFeaturedFixedDepartures,
-  searchFixedDepartures
+  searchFixedDepartures,
+  getFixedDeparturesByTourType,
+  getFixedDeparturesByCountry,
+  getFixedDeparturesByState,
+  getAvailableCountries,
+  getAvailableTourTypes,
+  getAvailableStates
 };
