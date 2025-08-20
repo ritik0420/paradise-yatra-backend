@@ -24,10 +24,6 @@ const holidayTypeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  bgColor: {
-    type: String,
-    default: "bg-gradient-to-br from-blue-400 to-blue-600"
-  },
   duration: {
     type: String,
     required: true
@@ -43,6 +39,27 @@ const holidayTypeSchema = new mongoose.Schema({
   price: {
     type: String,
     required: true
+  },
+  country: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  state: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  tourType: {
+    type: String,
+    required: false,
+    trim: true
+  },
+  category: {
+    type: String,
+    required: false,
+    trim: true,
+    enum: ['Beach Holidays', 'Adventure Tours', 'Trending Destinations', 'Premium Packages', 'Popular Packages', 'Fixed Departure', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours']
   },
   isActive: {
     type: Boolean,

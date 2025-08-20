@@ -43,10 +43,10 @@ const packageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // Updated category enum to match holiday type titles
+  // Updated category enum to match the centralized config
   category: {
     type: String,
-    enum: ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'],
+    enum: ['Beach Holidays', 'Adventure Tours', 'Trending Destinations', 'Premium Packages', 'Popular Packages', 'Fixed Departure', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours'],
     required: true
   },
   // New field: Reference to HolidayType for better categorization

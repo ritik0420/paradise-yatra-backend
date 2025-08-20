@@ -1,4 +1,5 @@
 const Package = require('../models/Package');
+const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
 
 // Helper function to transform image paths to full URLs
 const transformImageUrls = (packages, req) => {
@@ -132,15 +133,13 @@ const createPackage = async (req, res) => {
     }
 
     // Validate category
-    const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-    if (!validCategories.includes(req.body.category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+    if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+      return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
     }
 
     // Validate tour type
-    const validTourTypes = ['international', 'india'];
-    if (!validTourTypes.includes(req.body.tourType)) {
-      return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+    if (!TOUR_TYPES.includes(req.body.tourType)) {
+      return res.status(400).json({ message: `Invalid tour type. Must be one of: ${TOUR_TYPES.join(', ')}` });
     }
 
     // Validate price
@@ -209,17 +208,15 @@ const updatePackage = async (req, res) => {
 
     // Validate category if provided
     if (req.body.category) {
-      const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-      if (!validCategories.includes(req.body.category)) {
-        return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+      if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+        return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
       }
     }
 
     // Validate tour type if provided
     if (req.body.tourType) {
-      const validTourTypes = ['international', 'india'];
-      if (!validTourTypes.includes(req.body.tourType)) {
-        return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+      if (!TOUR_TYPES.includes(req.body.tourType)) {
+        return res.status(400).json({ message: `Invalid tour type. Must be one of: ${TOUR_TYPES.join(', ')}` });
       }
     }
 

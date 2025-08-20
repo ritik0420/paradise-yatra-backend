@@ -1,4 +1,5 @@
 const Destination = require('../models/Destination');
+const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
 
 // Helper function to transform image paths to full URLs
 const transformDestinationImageUrl = (destination, req) => {
@@ -110,9 +111,8 @@ const createDestination = async (req, res) => {
     }
 
     // Validate category
-    const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-    if (!validCategories.includes(req.body.category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+    if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+      return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
     }
 
     // If image file is uploaded, use the uploaded file path
@@ -141,17 +141,15 @@ const updateDestination = async (req, res) => {
   try {
     // Validate tour type if provided
     if (req.body.tourType) {
-      const validTourTypes = ['international', 'india'];
-      if (!validTourTypes.includes(req.body.tourType)) {
-        return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+      if (!TOUR_TYPES.includes(req.body.tourType)) {
+        return res.status(400).json({ message: `Invalid tour type. Must be one of: ${TOUR_TYPES.join(', ')}` });
       }
     }
 
     // Validate category if provided
     if (req.body.category) {
-      const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-      if (!validCategories.includes(req.body.category)) {
-        return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+      if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+        return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
       }
     }
 
@@ -202,14 +200,29 @@ const deleteDestination = async (req, res) => {
 // Get trending destinations
 const getTrendingDestinations = async (req, res) => {
   try {
-    const { limit = 6 } = req.query;
+    const { limit = 6, country, state, tourType } = req.query;
 
-    const destinations = await Destination.find({ 
+    let query = { 
       isTrending: true, 
       isActive: true 
-    })
-    .sort({ visitCount: -1, createdAt: -1 })
-    .limit(parseInt(limit));
+    };
+
+    // Add filters if provided
+    if (country) {
+      query.country = { $regex: new RegExp(country, 'i') };
+    }
+
+    if (state) {
+      query.state = { $regex: new RegExp(state, 'i') };
+    }
+
+    if (tourType && ['international', 'india'].includes(tourType)) {
+      query.tourType = tourType;
+    }
+
+    const destinations = await Destination.find(query)
+      .sort({ visitCount: -1, createdAt: -1 })
+      .limit(parseInt(limit));
 
     // Transform image URLs
     const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));

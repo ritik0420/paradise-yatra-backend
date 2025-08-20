@@ -47,10 +47,10 @@ const destinationSchema = new mongoose.Schema({
     required: true,
     default: 'india'
   },
-  // New field: Category to match holiday type titles
+  // New field: Category to match the centralized config
   category: {
     type: String,
-    enum: ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'],
+    enum: ['Beach Holidays', 'Adventure Tours', 'Trending Destinations', 'Premium Packages', 'Popular Packages', 'Fixed Departure', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours'],
     required: true
   },
   rating: {

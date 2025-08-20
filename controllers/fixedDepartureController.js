@@ -1,4 +1,5 @@
 const FixedDeparture = require('../models/FixedDeparture');
+const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
 
 // Get all fixed departures
 const getAllFixedDepartures = async (req, res) => {
@@ -135,15 +136,13 @@ const createFixedDeparture = async (req, res) => {
     }
 
     // Validate tour type
-    const validTourTypes = ['international', 'india'];
-    if (!validTourTypes.includes(req.body.tourType)) {
-      return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+    if (!TOUR_TYPES.includes(req.body.tourType)) {
+      return res.status(400).json({ message: `Invalid tour type. Must be one of: ${TOUR_TYPES.join(', ')}` });
     }
 
     // Validate category
-    const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-    if (!validCategories.includes(req.body.category)) {
-      return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+    if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+      return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
     }
 
     // Check if slug already exists
@@ -222,17 +221,15 @@ const updateFixedDeparture = async (req, res) => {
 
     // Validate tour type if provided
     if (req.body.tourType) {
-      const validTourTypes = ['international', 'india'];
-      if (!validTourTypes.includes(req.body.tourType)) {
-        return res.status(400).json({ message: 'Invalid tour type. Must be one of: international, india' });
+      if (!TOUR_TYPES.includes(req.body.tourType)) {
+        return res.status(400).json({ message: `Invalid tour type. Must be one of: ${TOUR_TYPES.join(', ')}` });
       }
     }
 
     // Validate category if provided
     if (req.body.category) {
-      const validCategories = ['Beach Holidays', 'Adventure Tours', 'Cultural Tours', 'Mountain Treks', 'Wildlife Safaris', 'Pilgrimage Tours', 'Honeymoon Packages', 'Family Tours', 'Luxury Tours', 'Budget Tours', 'Premium Tours'];
-      if (!validCategories.includes(req.body.category)) {
-        return res.status(400).json({ message: 'Invalid category. Must be one of: Beach Holidays, Adventure Tours, Cultural Tours, Mountain Treks, Wildlife Safaris, Pilgrimage Tours, Honeymoon Packages, Family Tours, Luxury Tours, Budget Tours, Premium Tours' });
+      if (!PACKAGE_CATEGORIES.includes(req.body.category)) {
+        return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
       }
     }
 
