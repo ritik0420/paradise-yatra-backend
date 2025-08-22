@@ -1,5 +1,6 @@
 const FixedDeparture = require('../models/FixedDeparture');
 const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
+const { processImageUrls, processSingleImage } = require('../utils/imageUtils');
 
 // Get all fixed departures
 const getAllFixedDepartures = async (req, res) => {
@@ -50,8 +51,28 @@ const getAllFixedDepartures = async (req, res) => {
 
     const count = await FixedDeparture.countDocuments(query);
 
+    // Process image URLs for each fixed departure
+    const processedFixedDepartures = fixedDepartures.map(departure => {
+      const departureObj = departure.toObject();
+      
+      // Process main images
+      if (departureObj.images) {
+        departureObj.images = processImageUrls(departureObj.images);
+      }
+      
+      // Process itinerary images
+      if (departureObj.itinerary && Array.isArray(departureObj.itinerary)) {
+        departureObj.itinerary = departureObj.itinerary.map(day => ({
+          ...day,
+          image: processSingleImage(day.image)
+        }));
+      }
+      
+      return departureObj;
+    });
+
     res.json({
-      fixedDepartures,
+      fixedDepartures: processedFixedDepartures,
       totalPages: Math.ceil(count / options.limit),
       currentPage: options.page,
       total: count
@@ -71,7 +92,21 @@ const getFixedDeparture = async (req, res) => {
       return res.status(404).json({ message: 'Fixed departure not found' });
     }
     
-    res.json(fixedDeparture);
+    // Process image URLs
+    const departureObj = fixedDeparture.toObject();
+    
+    if (departureObj.images) {
+      departureObj.images = processImageUrls(departureObj.images);
+    }
+    
+    if (departureObj.itinerary && Array.isArray(departureObj.itinerary)) {
+      departureObj.itinerary = departureObj.itinerary.map(day => ({
+        ...day,
+        image: processSingleImage(day.image)
+      }));
+    }
+    
+    res.json(departureObj);
   } catch (error) {
     console.error('Error fetching fixed departure:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -90,7 +125,21 @@ const getFixedDepartureBySlug = async (req, res) => {
       return res.status(404).json({ message: 'Fixed departure not found' });
     }
     
-    res.json(fixedDeparture);
+    // Process image URLs
+    const departureObj = fixedDeparture.toObject();
+    
+    if (departureObj.images) {
+      departureObj.images = processImageUrls(departureObj.images);
+    }
+    
+    if (departureObj.itinerary && Array.isArray(departureObj.itinerary)) {
+      departureObj.itinerary = departureObj.itinerary.map(day => ({
+        ...day,
+        image: processSingleImage(day.image)
+      }));
+    }
+    
+    res.json(departureObj);
   } catch (error) {
     console.error('Error fetching fixed departure by slug:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -366,7 +415,13 @@ const searchFixedDepartures = async (req, res) => {
     const query = { isActive: true };
     
     if (q) {
-      query.$text = { $search: q };
+      query.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { destination: { $regex: q, $options: 'i' } },
+        { country: { $regex: q, $options: 'i' } },
+        { state: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } }
+      ];
     }
     
     if (destination) {

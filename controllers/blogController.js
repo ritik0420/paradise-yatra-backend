@@ -1,15 +1,11 @@
 const Blog = require('../models/Blog');
+const { processSingleImage } = require('../utils/imageUtils');
 
 // Helper function to transform image paths to full URLs
-const transformBlogImageUrl = (blog, req) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  
-  if (blog.image && !blog.image.startsWith('http')) {
-    // Remove leading slash to avoid double slashes
-    const cleanImagePath = blog.image.startsWith('/') ? blog.image.substring(1) : blog.image;
-    blog.image = `${baseUrl}/${cleanImagePath}`;
+const transformBlogImageUrl = (blog) => {
+  if (blog.image) {
+    blog.image = processSingleImage(blog.image);
   }
-  
   return blog;
 };
 
@@ -40,7 +36,7 @@ const getAllBlogs = async (req, res) => {
     const total = await Blog.countDocuments(query);
 
     // Transform image URLs
-    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog, req));
+    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog));
 
     res.json({
       blogs: transformedBlogs,
@@ -71,7 +67,7 @@ const getBlog = async (req, res) => {
     await blog.save();
 
     // Transform image URL
-    const transformedBlog = transformBlogImageUrl(blog, req);
+    const transformedBlog = transformBlogImageUrl(blog);
 
     res.json(transformedBlog);
   } catch (error) {
@@ -87,7 +83,7 @@ const createBlog = async (req, res) => {
     await blog.save();
     
     // Transform image URL
-    const transformedBlog = transformBlogImageUrl(blog, req);
+    const transformedBlog = transformBlogImageUrl(blog);
     
     res.status(201).json({
       message: 'Blog created successfully',
@@ -113,7 +109,7 @@ const updateBlog = async (req, res) => {
     }
 
     // Transform image URL
-    const transformedBlog = transformBlogImageUrl(blog, req);
+    const transformedBlog = transformBlogImageUrl(blog);
 
     res.json({
       message: 'Blog updated successfully',
@@ -152,7 +148,7 @@ const getFeaturedBlogs = async (req, res) => {
       .limit(parseInt(limit));
 
     // Transform image URLs
-    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog, req));
+    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog));
 
     res.json(transformedBlogs);
   } catch (error) {
@@ -187,7 +183,7 @@ const searchBlogs = async (req, res) => {
     const blogs = await Blog.find(query).sort({ views: -1, createdAt: -1 });
     
     // Transform image URLs
-    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog, req));
+    const transformedBlogs = blogs.map(blog => transformBlogImageUrl(blog));
     
     res.json(transformedBlogs);
   } catch (error) {

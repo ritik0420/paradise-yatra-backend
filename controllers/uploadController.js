@@ -8,8 +8,9 @@ const uploadImage = async (req, res) => {
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    // Create the image URL
-    const imageUrl = `/uploads/${req.file.filename}`;
+    // Create the image URL using BACKEND_URL for static file serving
+    const baseUrl = process.env.BACKEND_URL || '';
+    const imageUrl = baseUrl ? `${baseUrl}/uploads/${req.file.filename}` : `/uploads/${req.file.filename}`;
     
     res.status(200).json({
       message: 'Image uploaded successfully',
@@ -56,6 +57,8 @@ const getAllImages = async (req, res) => {
     }
 
     const files = fs.readdirSync(uploadsDir);
+    const baseUrl = process.env.BACKEND_URL || '';
+    
     const images = files
       .filter(file => {
         const ext = path.extname(file).toLowerCase();
@@ -63,7 +66,7 @@ const getAllImages = async (req, res) => {
       })
       .map(file => ({
         filename: file,
-        url: `/uploads/${file}`,
+        url: baseUrl ? `${baseUrl}/uploads/${file}` : `/uploads/${file}`,
         size: fs.statSync(path.join(uploadsDir, file)).size
       }));
 

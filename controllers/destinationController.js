@@ -1,16 +1,12 @@
 const Destination = require('../models/Destination');
 const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
+const { processSingleImage } = require('../utils/imageUtils');
 
 // Helper function to transform image paths to full URLs
-const transformDestinationImageUrl = (destination, req) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  
-  if (destination.image && !destination.image.startsWith('http')) {
-    // Remove leading slash to avoid double slashes
-    const cleanImagePath = destination.image.startsWith('/') ? destination.image.substring(1) : destination.image;
-    destination.image = `${baseUrl}/${cleanImagePath}`;
+const transformDestinationImageUrl = (destination) => {
+  if (destination.image) {
+    destination.image = processSingleImage(destination.image);
   }
-  
   return destination;
 };
 
@@ -53,7 +49,7 @@ const getAllDestinations = async (req, res) => {
     const total = await Destination.countDocuments(query);
 
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
 
     res.json({
       destinations: transformedDestinations,
@@ -84,7 +80,7 @@ const getDestination = async (req, res) => {
     await destination.save();
 
     // Transform image URL
-    const transformedDestination = transformDestinationImageUrl(destination, req);
+    const transformedDestination = transformDestinationImageUrl(destination);
 
     res.json(transformedDestination);
   } catch (error) {
@@ -124,7 +120,7 @@ const createDestination = async (req, res) => {
     await destination.save();
     
     // Transform image URL
-    const transformedDestination = transformDestinationImageUrl(destination, req);
+    const transformedDestination = transformDestinationImageUrl(destination);
     
     res.status(201).json({
       message: 'Destination created successfully',
@@ -169,7 +165,7 @@ const updateDestination = async (req, res) => {
     }
 
     // Transform image URL
-    const transformedDestination = transformDestinationImageUrl(destination, req);
+    const transformedDestination = transformDestinationImageUrl(destination);
 
     res.json({
       message: 'Destination updated successfully',
@@ -225,7 +221,7 @@ const getTrendingDestinations = async (req, res) => {
       .limit(parseInt(limit));
 
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
 
     res.json(transformedDestinations);
   } catch (error) {
@@ -244,7 +240,9 @@ const searchDestinations = async (req, res) => {
     if (q) {
       query.$or = [
         { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } }
+        { description: { $regex: q, $options: 'i' } },
+        { country: { $regex: q, $options: 'i' } },
+        { state: { $regex: q, $options: 'i' } }
       ];
     }
     
@@ -273,7 +271,7 @@ const searchDestinations = async (req, res) => {
       .sort({ visitCount: -1 });
     
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
     
     res.json(transformedDestinations);
   } catch (error) {
@@ -303,7 +301,7 @@ const getDestinationsByTourType = async (req, res) => {
     const total = await Destination.countDocuments(query);
 
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
 
     res.json({
       destinations: transformedDestinations,
@@ -341,7 +339,7 @@ const getDestinationsByCountry = async (req, res) => {
     const total = await Destination.countDocuments(query);
 
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
 
     res.json({
       destinations: transformedDestinations,
@@ -379,7 +377,7 @@ const getDestinationsByState = async (req, res) => {
     const total = await Destination.countDocuments(query);
 
     // Transform image URLs
-    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest, req));
+    const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
 
     res.json({
       destinations: transformedDestinations,

@@ -1,22 +1,13 @@
 const Package = require('../models/Package');
 const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
+const { processImageUrls } = require('../utils/imageUtils');
+const axios = require('axios');
 
 // Helper function to transform image paths to full URLs
-const transformImageUrls = (packages, req) => {
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
-  
+const transformImageUrls = (packages) => {
   return packages.map(pkg => {
     if (pkg.images && Array.isArray(pkg.images)) {
-      pkg.images = pkg.images.map(img => {
-        // If the image is already a full URL, return as is
-        if (img.startsWith('http')) {
-          return img;
-        }
-        // If it's a file path, convert to full URL
-        // Remove leading slash to avoid double slashes
-        const cleanImagePath = img.startsWith('/') ? img.substring(1) : img;
-        return `${baseUrl}/${cleanImagePath}`;
-      });
+      pkg.images = processImageUrls(pkg.images);
     }
     return pkg;
   });
@@ -85,7 +76,7 @@ const getAllPackages = async (req, res) => {
     const total = await Package.countDocuments(query);
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json({
       packages: transformedPackages,
@@ -112,7 +103,7 @@ const getPackage = async (req, res) => {
     }
 
     // Transform image URLs
-    const transformedPackage = transformImageUrls([package], req)[0];
+    const transformedPackage = transformImageUrls([package])[0];
 
     res.json(transformedPackage);
   } catch (error) {
@@ -180,7 +171,7 @@ const createPackage = async (req, res) => {
     await package.save();
     
     // Transform image URLs
-    const transformedPackage = transformImageUrls([package], req)[0];
+    const transformedPackage = transformImageUrls([package])[0];
     
     res.status(201).json({
       message: 'Package created successfully',
@@ -259,7 +250,7 @@ const updatePackage = async (req, res) => {
     );
 
     // Transform image URLs
-    const transformedPackage = transformImageUrls([package], req)[0];
+    const transformedPackage = transformImageUrls([package])[0];
 
     res.json({
       message: 'Package updated successfully',
@@ -304,7 +295,7 @@ const getPackagesByCategory = async (req, res) => {
     .limit(parseInt(limit));
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json(transformedPackages);
   } catch (error) {
@@ -341,7 +332,7 @@ const searchPackages = async (req, res) => {
     const packages = await Package.find(query).sort({ createdAt: -1 });
     
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
     
     res.json(transformedPackages);
   } catch (error) {
@@ -401,7 +392,7 @@ const getPackageBySlug = async (req, res) => {
     }
 
     // Transform image URLs
-    const transformedPackage = transformImageUrls([package], req)[0];
+    const transformedPackage = transformImageUrls([package])[0];
 
     res.json(transformedPackage);
   } catch (error) {
@@ -425,8 +416,53 @@ const suggestPackages = async (req, res) => {
     if (searchQuery.length < 2) {
       return res.json({ suggestions: [] });
     }
+
+    // First, try to find exact matches in countries and states using external API
+    let locationMatches = [];
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_COUNTRY_API;
+      
+      if (apiKey) {
+        // Search in countries
+        const countriesResponse = await axios.get('https://api.countrystatecity.in/v1/countries', {
+          headers: { 'X-CSCAPI-KEY': apiKey }
+        });
+        
+        const matchingCountries = countriesResponse.data.filter(country => 
+          country.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          country.iso2.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          country.iso3.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        // For matching countries, get their states
+        for (const country of matchingCountries.slice(0, 3)) {
+          try {
+            const statesResponse = await axios.get(`https://api.countrystatecity.in/v1/countries/${country.iso2}/states`, {
+              headers: { 'X-CSCAPI-KEY': apiKey }
+            });
+            
+            const matchingStates = statesResponse.data.filter(state => 
+              state.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              state.state_code.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            
+            locationMatches.push({
+              type: 'country',
+              name: country.name,
+              iso2: country.iso2,
+              emoji: country.emoji,
+              states: matchingStates.slice(0, 5)
+            });
+          } catch (stateError) {
+            console.log(`Could not fetch states for ${country.name}:`, stateError.message);
+          }
+        }
+      }
+    } catch (locationError) {
+      console.log('Location API error (non-critical):', locationError.message);
+    }
     
-    // Create case-insensitive search query for title and description
+    // Create case-insensitive search query for packages
     const query = {
       isActive: true,
       $and: [
@@ -434,7 +470,9 @@ const suggestPackages = async (req, res) => {
           $or: [
             { title: { $regex: searchQuery, $options: 'i' } },
             { description: { $regex: searchQuery, $options: 'i' } },
-            { destination: { $regex: searchQuery, $options: 'i' } }
+            { destination: { $regex: searchQuery, $options: 'i' } },
+            { country: { $regex: searchQuery, $options: 'i' } },
+            { state: { $regex: searchQuery, $options: 'i' } }
           ]
         },
         // Ensure required fields exist and are not null/undefined
@@ -448,44 +486,54 @@ const suggestPackages = async (req, res) => {
 
     // Find packages with relevance scoring
     const packages = await Package.find(query)
-      .select('title description destination price duration category slug images')
-      .limit(10)
+      .select('title description destination price duration category slug images country state tourType')
+      .limit(15)
       .lean(); // Use lean() for better performance
 
     console.log(`Found ${packages.length} packages matching query`);
 
-    if (!packages || packages.length === 0) {
-      return res.json({ suggestions: [] });
-    }
-
-    // Score and sort by relevance with error handling
+    // Score and sort packages by relevance
     const scoredPackages = packages.map(pkg => {
       try {
         let score = 0;
         const searchLower = searchQuery.toLowerCase();
         
-        // Safely check title
+        // Title match (highest priority)
         if (pkg.title && typeof pkg.title === 'string') {
           if (pkg.title.toLowerCase().includes(searchLower)) {
-            score += 10;
+            score += 20;
             // Exact title match gets bonus
             if (pkg.title.toLowerCase() === searchLower) {
-              score += 5;
+              score += 10;
             }
           }
         }
         
-        // Safely check destination
+        // Destination match (high priority)
         if (pkg.destination && typeof pkg.destination === 'string') {
           if (pkg.destination.toLowerCase().includes(searchLower)) {
-            score += 8;
+            score += 15;
           }
         }
         
-        // Safely check description
+        // Country match (high priority)
+        if (pkg.country && typeof pkg.country === 'string') {
+          if (pkg.country.toLowerCase().includes(searchLower)) {
+            score += 12;
+          }
+        }
+        
+        // State match (medium priority)
+        if (pkg.state && typeof pkg.state === 'string') {
+          if (pkg.state.toLowerCase().includes(searchLower)) {
+            score += 10;
+          }
+        }
+        
+        // Description match (lower priority)
         if (pkg.description && typeof pkg.description === 'string') {
           if (pkg.description.toLowerCase().includes(searchLower)) {
-            score += 3;
+            score += 5;
           }
         }
         
@@ -496,23 +544,55 @@ const suggestPackages = async (req, res) => {
       }
     });
 
-    // Sort by score (descending) and take top 5
-    const suggestions = scoredPackages
+    // Sort packages by score (descending)
+    const sortedPackages = scoredPackages
       .sort((a, b) => (b.score || 0) - (a.score || 0))
-      .slice(0, 5)
-      .map(pkg => ({
-        id: pkg._id,
-        title: pkg.title || 'Untitled Package',
-        destination: pkg.destination || 'Unknown Destination',
-        price: pkg.price || 0,
-        duration: pkg.duration || 'N/A',
-        category: pkg.category || 'holiday',
-        slug: pkg.slug || '',
-        image: pkg.images && Array.isArray(pkg.images) && pkg.images.length > 0 ? pkg.images[0] : null
-      }));
+      .slice(0, 8);
 
-    console.log(`Returning ${suggestions.length} suggestions`);
-    res.json({ suggestions });
+    // Create suggestions combining location matches and packages
+    const suggestions = [];
+
+    // Add location-based suggestions first
+    locationMatches.forEach(location => {
+      if (location.type === 'country') {
+        suggestions.push({
+          id: `country_${location.iso2}`,
+          title: `${location.emoji} ${location.name}`,
+          destination: location.name,
+          price: 0,
+          duration: 'N/A',
+          category: 'location',
+          slug: `country/${location.iso2}`,
+          image: null,
+          type: 'country',
+          iso2: location.iso2,
+          states: location.states
+        });
+      }
+    });
+
+    // Add package suggestions
+    const packageSuggestions = sortedPackages.map(pkg => ({
+      id: pkg._id,
+      title: pkg.title || 'Untitled Package',
+      destination: pkg.destination || 'Unknown Destination',
+      price: pkg.price || 0,
+      duration: pkg.duration || 'N/A',
+      category: pkg.category || 'holiday',
+      slug: pkg.slug || '',
+      image: pkg.images && Array.isArray(pkg.images) && pkg.images.length > 0 ? pkg.images[0] : null,
+      country: pkg.country,
+      state: pkg.state,
+      tourType: pkg.tourType
+    }));
+
+    suggestions.push(...packageSuggestions);
+
+    // Limit total suggestions to 12
+    const finalSuggestions = suggestions.slice(0, 12);
+
+    console.log(`Returning ${finalSuggestions.length} suggestions (${locationMatches.length} locations, ${packageSuggestions.length} packages)`);
+    res.json({ suggestions: finalSuggestions });
     
   } catch (error) {
     console.error('Suggest packages error:', error);
@@ -547,7 +627,7 @@ const getPackagesByTourType = async (req, res) => {
     const total = await Package.countDocuments(query);
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json({
       packages: transformedPackages,
@@ -585,7 +665,7 @@ const getPackagesByCountry = async (req, res) => {
     const total = await Package.countDocuments(query);
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json({
       packages: transformedPackages,
@@ -623,7 +703,7 @@ const getPackagesByHolidayType = async (req, res) => {
     const total = await Package.countDocuments(query);
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json({
       packages: transformedPackages,
@@ -661,7 +741,7 @@ const getPackagesByState = async (req, res) => {
     const total = await Package.countDocuments(query);
 
     // Transform image URLs
-    const transformedPackages = transformImageUrls(packages, req);
+    const transformedPackages = transformImageUrls(packages);
 
     res.json({
       packages: transformedPackages,
