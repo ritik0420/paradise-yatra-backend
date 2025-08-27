@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 
@@ -29,6 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
+
 
 if (!MONGODB_URI) {
   console.error('MONGODB_URI environment variable is not set');
