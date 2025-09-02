@@ -61,7 +61,17 @@ const getAllPackages = async (req, res) => {
     }
 
     if (state) {
-      query.state = { $regex: new RegExp(state, 'i') };
+      // For international tours, if state matches country name, search by country instead
+      if (tourType === 'international') {
+        // Check if state parameter matches any country name
+        const countryMatch = { $regex: new RegExp(state, 'i') };
+        query.$or = [
+          { state: countryMatch },
+          { country: countryMatch }
+        ];
+      } else {
+        query.state = { $regex: new RegExp(state, 'i') };
+      }
     }
 
     if (holidayType) {

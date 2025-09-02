@@ -73,6 +73,17 @@ const holidayTypeSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  highlights: [{
+    type: String
+  }],
+  inclusions: [{
+    type: String,
+    trim: true
+  }],
+  exclusions: [{
+    type: String,
+    trim: true
+  }],
   itinerary: [{
     day: {
       type: Number,

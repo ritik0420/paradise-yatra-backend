@@ -2,6 +2,37 @@ const Destination = require('../models/Destination');
 const { PACKAGE_CATEGORIES, TOUR_TYPES } = require('../config/categories');
 const { processSingleImage } = require('../utils/imageUtils');
 
+// Helper function to generate slug from name
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .trim('-'); // Remove leading/trailing hyphens
+};
+
+// Helper function to ensure unique slug
+const ensureUniqueSlug = async (baseSlug, existingId = null) => {
+  let slug = baseSlug;
+  let counter = 1;
+  
+  while (true) {
+    const query = { slug };
+    if (existingId) {
+      query._id = { $ne: existingId };
+    }
+    
+    const existing = await Destination.findOne(query);
+    if (!existing) {
+      return slug;
+    }
+    
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+};
+
 // Helper function to transform image paths to full URLs
 const transformDestinationImageUrl = (destination) => {
   if (destination.image) {
@@ -69,7 +100,19 @@ const getAllDestinations = async (req, res) => {
 // Get single destination
 const getDestination = async (req, res) => {
   try {
-    const destination = await Destination.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Check if it's a valid ObjectId (24 character hex string)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+    
+    let destination;
+    if (isObjectId) {
+      // Query by ObjectId
+      destination = await Destination.findById(id);
+    } else {
+      // Query by slug
+      destination = await Destination.findOne({ slug: id });
+    }
     
     if (!destination) {
       return res.status(404).json({ message: 'Destination not found.' });
@@ -111,6 +154,10 @@ const createDestination = async (req, res) => {
       return res.status(400).json({ message: `Invalid category. Must be one of: ${PACKAGE_CATEGORIES.join(', ')}` });
     }
 
+    // Generate slug from name
+    const baseSlug = generateSlug(req.body.name);
+    req.body.slug = await ensureUniqueSlug(baseSlug);
+    
     // If image file is uploaded, use the uploaded file path
     if (req.file) {
       req.body.image = `/uploads/${req.file.filename}`;
@@ -149,6 +196,12 @@ const updateDestination = async (req, res) => {
       }
     }
 
+    // Generate slug from name if name is being updated
+    if (req.body.name) {
+      const baseSlug = generateSlug(req.body.name);
+      req.body.slug = await ensureUniqueSlug(baseSlug, req.params.id);
+    }
+    
     // If image file is uploaded, use the uploaded file path
     if (req.file) {
       req.body.image = `/uploads/${req.file.filename}`;

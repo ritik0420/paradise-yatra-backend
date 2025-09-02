@@ -6,6 +6,13 @@ const destinationSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
+  },
   description: {
     type: String,
     required: true
@@ -69,6 +76,16 @@ const destinationSchema = new mongoose.Schema({
   highlights: [{
     type: String
   }],
+  // New field: What's included in the package
+  inclusions: [{
+    type: String,
+    trim: true
+  }],
+  // New field: What's excluded from the package
+  exclusions: [{
+    type: String,
+    trim: true
+  }],
   // New field: Itinerary for day-wise tour planning
   itinerary: [{
     day: {
@@ -85,11 +102,11 @@ const destinationSchema = new mongoose.Schema({
     }],
     accommodation: {
       type: String,
-      required: true
+      required: false
     },
     meals: {
       type: String,
-      required: true
+      required: false
     },
     image: {
       type: String,
@@ -116,6 +133,7 @@ const destinationSchema = new mongoose.Schema({
 destinationSchema.index({ name: 'text', description: 'text', location: 'text' });
 destinationSchema.index({ isActive: 1 });
 destinationSchema.index({ name: 1 });
+destinationSchema.index({ slug: 1 }); // Index for slug-based queries
 destinationSchema.index({ location: 1 });
 destinationSchema.index({ holidayType: 1 });
 destinationSchema.index({ country: 1 });

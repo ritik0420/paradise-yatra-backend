@@ -22,6 +22,10 @@ const blogSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  imageAlt: {
+    type: String,
+    trim: true
+  },
   tags: [{
     type: String,
     trim: true
