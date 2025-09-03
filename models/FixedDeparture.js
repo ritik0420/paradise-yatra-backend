@@ -114,11 +114,11 @@ const fixedDepartureSchema = new mongoose.Schema({
     }],
     accommodation: {
       type: String,
-      required: true
+      required: false
     },
     meals: {
       type: String,
-      required: true
+      required: false
     },
     image: {
       type: String,
