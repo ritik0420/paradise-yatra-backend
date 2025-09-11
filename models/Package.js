@@ -145,6 +145,65 @@ const packageSchema = new mongoose.Schema({
   isFeatured: {
     type: Boolean,
     default: false
+  },
+  // SEO fields
+  seoTitle: {
+    type: String,
+    trim: true
+  },
+  seoDescription: {
+    type: String,
+    trim: true
+  },
+  seoKeywords: [{
+    type: String,
+    trim: true
+  }],
+  seoOgTitle: {
+    type: String,
+    trim: true
+  },
+  seoOgDescription: {
+    type: String,
+    trim: true
+  },
+  seoOgImage: {
+    type: String,
+    trim: true
+  },
+  seoTwitterTitle: {
+    type: String,
+    trim: true
+  },
+  seoTwitterDescription: {
+    type: String,
+    trim: true
+  },
+  seoTwitterImage: {
+    type: String,
+    trim: true
+  },
+  seoCanonicalUrl: {
+    type: String,
+    trim: true
+  },
+  seoRobotsIndex: {
+    type: Boolean,
+    default: true
+  },
+  seoRobotsFollow: {
+    type: Boolean,
+    default: true
+  },
+  seoAuthor: {
+    type: String,
+    trim: true,
+    default: 'Paradise Yatra'
+  },
+  seoPublisher: {
+    type: String,
+    trim: true,
+    default: 'Paradise Yatra'
   }
 }, {
   timestamps: true
