@@ -78,6 +78,7 @@ const uploadRoutes = require('./routes/upload');
 const fixedDepartureRoutes = require('./routes/fixedDepartures');
 const footerRoutes = require('./routes/footer');
 const locationRoutes = require('./routes/locations');
+const seoRoutes = require('./routes/seo');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/packages', packageRoutes);
@@ -93,6 +94,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/fixed-departures', fixedDepartureRoutes);
 app.use('/api/footer', footerRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/seo', seoRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -61,7 +61,17 @@ const getAllDestinations = async (req, res) => {
     }
 
     if (state) {
-      query.state = { $regex: new RegExp(state, 'i') };
+      // For international tours, if state matches country name, search by country instead
+      if (tourType === 'international') {
+        // Check if state parameter matches any country name
+        const countryMatch = { $regex: new RegExp(state, 'i') };
+        query.$or = [
+          { state: countryMatch },
+          { country: countryMatch }
+        ];
+      } else {
+        query.state = { $regex: new RegExp(state, 'i') };
+      }
     }
 
     if (category) {
@@ -72,12 +82,64 @@ const getAllDestinations = async (req, res) => {
       query.holidayType = holidayType;
     }
 
-    const destinations = await Destination.find(query)
+    let destinations = await Destination.find(query)
       .sort({ visitCount: -1, createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
-    const total = await Destination.countDocuments(query);
+    let total = await Destination.countDocuments(query);
+
+    // If no destinations found and looking for international packages, try to get packages
+    if (destinations.length === 0 && tourType === 'international') {
+      const Package = require('../models/Package');
+      const packages = await Package.find({
+        isActive: true,
+        tourType: 'international',
+        ...(state ? {
+          $or: [
+            { state: { $regex: new RegExp(state, 'i') } },
+            { country: { $regex: new RegExp(state, 'i') } }
+          ]
+        } : {})
+      })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit));
+
+      const packageTotal = await Package.countDocuments({
+        isActive: true,
+        tourType: 'international',
+        ...(state ? {
+          $or: [
+            { state: { $regex: new RegExp(state, 'i') } },
+            { country: { $regex: new RegExp(state, 'i') } }
+          ]
+        } : {})
+      });
+
+      // Transform packages to destinations format
+      destinations = packages.map(pkg => ({
+        _id: pkg._id,
+        name: pkg.title,
+        slug: pkg.slug,
+        description: pkg.description,
+        shortDescription: pkg.shortDescription,
+        image: pkg.images && pkg.images.length > 0 ? pkg.images[0] : pkg.image,
+        location: pkg.destination,
+        rating: pkg.rating || 0,
+        price: pkg.price,
+        duration: pkg.duration,
+        isActive: pkg.isActive,
+        isTrending: pkg.isFeatured || false,
+        visitCount: 0,
+        country: pkg.country,
+        state: pkg.state,
+        tourType: pkg.tourType,
+        category: pkg.category
+      }));
+
+      total = packageTotal;
+    }
 
     // Transform image URLs
     const transformedDestinations = destinations.map(dest => transformDestinationImageUrl(dest));
@@ -262,7 +324,17 @@ const getTrendingDestinations = async (req, res) => {
     }
 
     if (state) {
-      query.state = { $regex: new RegExp(state, 'i') };
+      // For international tours, if state matches country name, search by country instead
+      if (tourType === 'international') {
+        // Check if state parameter matches any country name
+        const countryMatch = { $regex: new RegExp(state, 'i') };
+        query.$or = [
+          { state: countryMatch },
+          { country: countryMatch }
+        ];
+      } else {
+        query.state = { $regex: new RegExp(state, 'i') };
+      }
     }
 
     if (tourType && ['international', 'india'].includes(tourType)) {
@@ -312,7 +384,17 @@ const searchDestinations = async (req, res) => {
     }
 
     if (state) {
-      query.state = { $regex: new RegExp(state, 'i') };
+      // For international tours, if state matches country name, search by country instead
+      if (tourType === 'international') {
+        // Check if state parameter matches any country name
+        const countryMatch = { $regex: new RegExp(state, 'i') };
+        query.$or = [
+          { state: countryMatch },
+          { country: countryMatch }
+        ];
+      } else {
+        query.state = { $regex: new RegExp(state, 'i') };
+      }
     }
 
     if (category) {
