@@ -83,7 +83,7 @@ const getAllDestinations = async (req, res) => {
     }
 
     let destinations = await Destination.find(query)
-      .sort({ visitCount: -1, createdAt: -1 })
+      .sort({ createdAt: -1, visitCount: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
@@ -342,7 +342,7 @@ const getTrendingDestinations = async (req, res) => {
     }
 
     const destinations = await Destination.find(query)
-      .sort({ visitCount: -1, createdAt: -1 })
+      .sort({ createdAt: -1, visitCount: -1 })
       .limit(parseInt(limit));
 
     // Transform image URLs
@@ -429,7 +429,7 @@ const getDestinationsByTourType = async (req, res) => {
 
     const destinations = await Destination.find(query)
       .populate('holidayType', 'title slug image')
-      .sort({ visitCount: -1, createdAt: -1 })
+      .sort({ createdAt: -1, visitCount: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
@@ -467,7 +467,7 @@ const getDestinationsByCountry = async (req, res) => {
 
     const destinations = await Destination.find(query)
       .populate('holidayType', 'title slug image')
-      .sort({ visitCount: -1, createdAt: -1 })
+      .sort({ createdAt: -1, visitCount: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
@@ -505,7 +505,7 @@ const getDestinationsByState = async (req, res) => {
 
     const destinations = await Destination.find(query)
       .populate('holidayType', 'title slug image')
-      .sort({ visitCount: -1, createdAt: -1 })
+      .sort({ createdAt: -1, visitCount: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
 
